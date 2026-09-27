@@ -1,5 +1,5 @@
 # Tag releases: push a version tag (v0.1.0, v0.1.1, …) to publish that exact
-# release and move the rolling `latest` tag/release to it.
+# release. Only version tags are published — no rolling tag is created.
 name: Release
 on:
   push:
@@ -12,24 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Pack the plugin
-        run: |
-          git archive --format=tar.gz -o "dsh-theme-picker-${GITHUB_REF_NAME}.tgz" HEAD
-          cp "dsh-theme-picker-${GITHUB_REF_NAME}.tgz" dsh-theme-picker.tgz
+        run: git archive --format=tar.gz -o "dsh-theme-picker-${GITHUB_REF_NAME}.tgz" HEAD
       - name: Publish the version release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
-          files: |
-            dsh-theme-picker-${{ github.ref_name }}.tgz
-            dsh-theme-picker.tgz
+          files: dsh-theme-picker-${{ github.ref_name }}.tgz
           generate_release_notes: true
-      - name: Move the rolling latest tag and release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete latest --yes --cleanup-tag || true
-          git tag -f latest "$GITHUB_SHA"
-          git push -f origin latest
-          gh release create latest --title latest \
-            --notes "Rolling release: the newest tagged version, currently ${GITHUB_REF_NAME}. Install with: dsh plugin --profile web add github:${GITHUB_REPOSITORY}#latest — or download the archive below." \
-            dsh-theme-picker.tgz

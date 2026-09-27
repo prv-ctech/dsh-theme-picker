@@ -44,6 +44,19 @@ check(
   },
 )
 
+// --- release hygiene: version tags only -----------------------------------
+// The README advertises a pinned tag, so it must name the version the manifest
+// actually carries (a stale tag installs a different release, or nothing), and
+// the release workflow must publish version tags only.
+
+check('the README pins the manifest version and the workflow moves no extra tags', () => {
+  const version = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8')).version
+  const pinned = [...readFileSync(join(PACKAGE_ROOT, 'README.md'), 'utf8').matchAll(/#(v\d+\.\d+\.\d+|latest)\b/g)].map((m) => m[1])
+  deepStrictEqual(pinned, [`v${version}`], 'the README must pin exactly the manifest version, and never a moving tag')
+  const workflow = readFileSync(join(PACKAGE_ROOT, '.github/workflows/release.yml'), 'utf8')
+  ok(!/gh release|git tag -f/.test(workflow), 'the workflow must not create, move, or delete extra tags')
+})
+
 // --- validateBody: the /theme-picker/state PUT trust boundary -------------
 
 check('accepts a full selection + boot payload', () => {
