@@ -1,16 +1,48 @@
 /**
  * dsh-theme-picker — host half tests (pure logic, no HTTP).
  *
- * Covers the PUT-body trust boundary (validation), the durable state file
- * roundtrip, and the boot-style derivation. Run: node test/state.mjs
+ * Covers the install shape (the package must be the repo root), the PUT-body
+ * trust boundary (validation), the durable state file roundtrip, and the
+ * boot-style derivation. Run: node test/state.mjs
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { deepStrictEqual, ok, strictEqual } from 'node:assert'
 import { after, before, describe, test as check } from 'node:test'
 
 const host = await import('../lib/index.js')
+
+// --- install shape: the package must be the repo root ---------------------
+// `dsh plugin add github:owner/repo` resolves the repository root, so a
+// package nested in a subdirectory installs as a pnpm placeholder manifest
+// with no `dsh.bundle`: dsh does not add a profile layer, warns, and the
+// plugin silently does nothing.
+
+const PACKAGE_ROOT = fileURLToPath(new URL('..', import.meta.url))
+
+/** Nearest ancestor holding `.git`, or undefined outside a checkout. */
+function repoRoot(from) {
+  for (let dir = from; ; dir = dirname(dir)) {
+    if (existsSync(join(dir, '.git'))) return dir
+    if (dirname(dir) === dir) return undefined
+  }
+}
+
+const REPO_ROOT = repoRoot(PACKAGE_ROOT)
+
+check(
+  'the package is the repo root, with the layer dsh loads',
+  { skip: REPO_ROOT === undefined && 'not a git checkout' },
+  () => {
+    strictEqual(resolve(PACKAGE_ROOT), resolve(REPO_ROOT), 'a nested package installs as a placeholder')
+    const manifest = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8'))
+    ok(manifest.dsh?.bundle?.patch, 'dsh.bundle.patch is what makes it a profile layer')
+    ok(existsSync(join(PACKAGE_ROOT, manifest.main)), `main entry ${manifest.main} exists`)
+    ok(existsSync(join(PACKAGE_ROOT, manifest.dsh.bundle.patch)), 'bundle patch exists')
+  },
+)
 
 // --- validateBody: the /theme-picker/state PUT trust boundary -------------
 
