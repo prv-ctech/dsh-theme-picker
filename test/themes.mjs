@@ -15,8 +15,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test as check } from 'node:test'
 
-import { KEYS, referenceTables, renderBlock, withTables } from '../../scripts/build-tables.mjs'
-import { baseTokens } from '../../scripts/live-tokens.mjs'
+import { KEYS, referenceTables, renderBlock, withTables } from '../scripts/build-tables.mjs'
+import { baseTokens } from '../scripts/live-tokens.mjs'
 
 const BUNDLE = new URL('../lib/client.js', import.meta.url)
 

@@ -1,6 +1,6 @@
 {
   "name": "dsh-theme-picker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Theme Picker tab for DeepSeek Harness: Dracula and the four Catppuccin flavors with instant switching and a durable selection.",
   "license": "MIT",

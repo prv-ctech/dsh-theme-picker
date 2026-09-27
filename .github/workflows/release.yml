@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Pack the plugin
         run: |
-          git archive --format=tar.gz -o "dsh-theme-picker-${GITHUB_REF_NAME}.tgz" HEAD:dsh-theme-picker
+          git archive --format=tar.gz -o "dsh-theme-picker-${GITHUB_REF_NAME}.tgz" HEAD
           cp "dsh-theme-picker-${GITHUB_REF_NAME}.tgz" dsh-theme-picker.tgz
       - name: Publish the version release
         uses: softprops/action-gh-release@v2

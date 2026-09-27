@@ -24,7 +24,7 @@ Compatible with **DSH 0.1.7-rc.2** (web profile).
 dsh plugin --profile web add github:prv-ctech/dsh-theme-picker
 
 # one exact release, pinned until you say otherwise
-dsh plugin --profile web add github:prv-ctech/dsh-theme-picker#v0.1.0
+dsh plugin --profile web add github:prv-ctech/dsh-theme-picker#v0.1.1
 
 # the newest release, as it moves (a rolling tag)
 dsh plugin --profile web add github:prv-ctech/dsh-theme-picker#latest
@@ -43,4 +43,4 @@ Dracula mapping adapted from
 
 ## License
 
-MIT — see [LICENSE](./dsh-theme-picker/LICENSE).
+MIT — see [LICENSE](./LICENSE).

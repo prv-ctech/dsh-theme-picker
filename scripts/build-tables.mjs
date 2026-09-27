@@ -1,5 +1,5 @@
 /**
- * Generate the token tables embedded in `dsh-theme-picker/lib/client.js`.
+ * Generate the token tables embedded in `lib/client.js`.
  *
  * The client bundle is one self-contained file (the module loader runs it as a
  * single factory), so the reference tables live inline. This script reads the
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 
 import { liveTokens } from './live-tokens.mjs'
 
-const CLIENT = fileURLToPath(new URL('../dsh-theme-picker/lib/client.js', import.meta.url))
+const CLIENT = fileURLToPath(new URL('../lib/client.js', import.meta.url))
 const RESEARCH = fileURLToPath(new URL('../.superpowers/research/', import.meta.url))
 
 /** Catalog order: Dracula, then the Catppuccin flavors light → dark. */
