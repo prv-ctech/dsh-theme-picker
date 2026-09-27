@@ -38,6 +38,10 @@ directory). Then open the web UI → Settings → Theme Picker.
 - The browser half registers each theme into the built-in `ctx.theme` runtime
   (`ThemeDefinition` with `--dsw-*` alias/static token overrides, including
   the `--shiki-*` syntax palette) and switches with `setTheme(id)`.
+- **199 tokens per theme**: the researched tables carry 173 tokens that the
+  installed build actually declares; the remaining 26 (document preview, link,
+  menu icon, diff colors, tooltip key, onboarding and settings-card surfaces)
+  are derived from each palette at load time — see `fills()` in `lib/client.js`.
 - The runtime persists only built-in preferences, so the plugin owns the
   selection's persistence (localStorage + a `GET/PUT /theme-picker/state`
   route over the Host's webServer, atomically written under `$DSH_HOME`).
@@ -48,6 +52,21 @@ directory). Then open the web UI → Settings → Theme Picker.
 - The Host half also injects a pre-plugin boot style painting the selected
   theme's base background, so a reload does not flash the default palette
   before the plugin loads.
+
+## Development
+
+The token tables are generated from `docs/research/*.json` and the running
+build, so a token this Harness no longer declares never ships:
+
+```sh
+node scripts/build-tables.mjs           # regenerate the embedded tables
+node scripts/build-tables.mjs --check   # fail when they are stale
+node test/themes.mjs                    # client half: catalog, tab, selection, clobber defense
+node test/state.mjs                     # host half: route validation and state file
+```
+
+`scripts/dsh-install.mjs` locates the installed Harness packages (override with
+`DSH_INSTALL`) — that build is the source of truth for the live token set.
 
 ## Theme sources & attribution
 
