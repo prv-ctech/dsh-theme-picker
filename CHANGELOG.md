@@ -3,12 +3,16 @@
 Consumer-visible changes to `dsh-theme-picker`, newest first. Entries are grouped
 by impact rather than by commit: the commit log is for the repo, this file is for
 you. Versions follow [semver](https://semver.org/), and a release is published
-only when the git tag, the manifest version and an entry here all agree —
-[release.yml](./.github/workflows/release.yml) fails the run otherwise.
+only when the git tag, the manifest version, an entry here and a green CI run on
+`main` all agree — [release.yml](./.github/workflows/release.yml) fails the run
+otherwise.
 
 ## [Unreleased]
 
-Nothing yet.
+Nothing consumer-visible. Repo-only work: a version tag now publishes only when
+its commit is already on `main` with a green CI run
+([release-guard.mjs](./scripts/release-guard.mjs)), and `main` carries branch
+protection — a required `check` status, no force pushes, no deletion.
 
 ## [0.1.3] - 2026-09-27
 

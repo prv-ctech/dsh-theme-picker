@@ -14,6 +14,7 @@ import { after, before, describe, test as check } from 'node:test'
 
 const host = await import('../lib/index.js')
 const { commitProblem } = await import('../scripts/commit-msg.mjs')
+const { ciProblem } = await import('../scripts/release-guard.mjs')
 
 // --- install shape: the package must be the repo root ---------------------
 // `dsh plugin add github:owner/repo` resolves the repository root, so a
@@ -58,6 +59,43 @@ check('the README pins the manifest version and the workflow moves no extra tags
   deepStrictEqual(pinned, [`v${version}`], 'the README must pin exactly the manifest version, and never a moving tag')
   const workflow = readFileSync(join(PACKAGE_ROOT, '.github/workflows/release.yml'), 'utf8')
   ok(!/gh release|git tag -f/.test(workflow), 'the workflow must not create, move, or delete extra tags')
+})
+
+// --- release guard: a tag may only publish what CI blessed ------------------
+// The guard reads the git graph and the Actions API, so its verdict lives in a
+// pure function. A wrong verdict here either blocks a good release or publishes
+// an unverified one, and the tag is the point of no return for both.
+
+const RELEASED_SHA = '9a96aeb1775ffa17703e5dbf0d4e5b7f71996073'
+const OTHER_SHA = '945e2c88219e549f895f519919dbf276b2b35190'
+
+check('a commit with a green CI run is cleared for release', () => {
+  strictEqual(ciProblem([{ head_sha: RELEASED_SHA, status: 'completed', conclusion: 'success' }], RELEASED_SHA), null)
+})
+
+check('a commit whose CI is unfinished, failed, or unrun is not cleared', () => {
+  ok(
+    ciProblem([{ head_sha: RELEASED_SHA, status: 'in_progress', conclusion: null }], RELEASED_SHA)?.includes(
+      'still running'
+    )
+  )
+  ok(
+    ciProblem([{ head_sha: RELEASED_SHA, status: 'completed', conclusion: 'failure' }], RELEASED_SHA)?.includes(
+      'failure'
+    )
+  )
+  ok(ciProblem([], RELEASED_SHA)?.includes('has not run'))
+})
+
+check('a green run on a different commit does not clear this one', () => {
+  ok(ciProblem([{ head_sha: OTHER_SHA, status: 'completed', conclusion: 'success' }], RELEASED_SHA) !== null)
+})
+
+check('the release workflow guards before it packs', () => {
+  const workflow = readFileSync(join(PACKAGE_ROOT, '.github/workflows/release.yml'), 'utf8')
+  const guard = workflow.indexOf('scripts/release-guard.mjs')
+  ok(guard !== -1, 'release.yml must run the release guard')
+  ok(guard < workflow.indexOf('Pack the plugin'), 'the guard has to run before the pack step, or it guards nothing')
 })
 
 // A version bump and its changelog entry belong in the same commit. At tag time

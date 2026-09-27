@@ -60,6 +60,10 @@ subjects pass through exactly as git writes them; `--amend` is checked, a rebase
 replay is not. `git commit --no-verify` skips both hooks for one commit, and CI
 runs the gate on the push regardless.
 
+A release is cut by pushing a version tag. The tag only publishes when it agrees
+with `package.json`, when its commit is already on `main`, and when CI has passed
+on that commit — so tag what you pushed, not what you just committed.
+
 `lib/client.js` is generated from `research/` by `scripts/build-tables.mjs`, and
 both its `--check` mode and the test suite fail if it drifts. Don't hand-edit it.
 

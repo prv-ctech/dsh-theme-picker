@@ -2,22 +2,27 @@
 # release. Only version tags are published — no rolling tag is created.
 #
 # Every guard runs before the pack step, so a tag that disagrees with the
-# manifest fails the run instead of publishing a release whose name and version
-# contradict each other. The release notes are this version's CHANGELOG.md
-# section — the same text a reader finds in the repo — not generated notes built
-# from raw commit subjects. `node test/state.mjs` needs no dependencies, so it
-# runs here without an install.
+# manifest, or that points at a commit CI never blessed, fails the run instead of
+# publishing a release whose name, version and provenance contradict each other.
+# The release notes are this version's CHANGELOG.md section — the same text a
+# reader finds in the repo — not generated notes built from raw commit subjects.
+# `node test/state.mjs` needs no dependencies, so it runs here without an install.
 name: Release
 on:
   push:
     tags: ['v*']
 permissions:
   contents: write
+  # release-guard.mjs reads this commit's CI runs before publishing.
+  actions: read
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      # Full history: the guard asks git whether the tagged commit is on main.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: The tag must match the manifest version
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -27,6 +32,12 @@ jobs:
             exit 1
           fi
           echo "tag $GITHUB_REF_NAME matches package.json $manifest"
+      - name: The tag must sit on a CI-green main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          node scripts/release-guard.mjs "$GITHUB_REF_NAME"
       - name: The install shape and release hygiene must hold
         run: node test/state.mjs
       - name: Lift this version's changelog entry into the release body
