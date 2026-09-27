@@ -49,14 +49,3 @@ export function baseTokens() {
   if (blob === undefined) throw new Error('base palette stylesheet not found')
   return [...new Set(namesOf(blob[1]))].sort()
 }
-
-/** Token name → declared value, first declaration wins (light block first). */
-export function declaredValues() {
-  const values = new Map()
-  for (const [, css] of cssBlobs()) {
-    for (const [, name, value] of css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;}]+)/g)) {
-      if (!values.has(name)) values.set(name, value.trim())
-    }
-  }
-  return values
-}

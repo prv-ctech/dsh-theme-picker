@@ -8,19 +8,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { deepStrictEqual, ok, strictEqual } from 'node:assert'
+import { after, before, describe, test as check } from 'node:test'
 
 const host = await import('../lib/index.js')
-
-let passed = 0
-function check(name, fn) {
-  try {
-    fn()
-    passed++
-  } catch (error) {
-    console.error(`FAIL ${name}`)
-    throw error
-  }
-}
 
 // --- validateBody: the /theme-picker/state PUT trust boundary -------------
 
@@ -61,10 +51,21 @@ for (const [name, value] of [
 
 // --- durable state file -----------------------------------------------------
 
-const home = mkdtempSync(join(tmpdir(), 'dsh-theme-picker-test-'))
-const previousHome = process.env.DSH_HOME
-process.env.DSH_HOME = home
-try {
+// Test bodies run after the module finishes evaluating, so the temp home and
+// DSH_HOME live in the suite's hooks, not at module top level.
+describe('durable state file', () => {
+  let home
+  let previousHome
+  before(() => {
+    home = mkdtempSync(join(tmpdir(), 'dsh-theme-picker-test-'))
+    previousHome = process.env.DSH_HOME
+    process.env.DSH_HOME = home
+  })
+  after(() => {
+    process.env.DSH_HOME = previousHome
+    rmSync(home, { recursive: true, force: true })
+  })
+
   check('missing state reads as null', () => strictEqual(host.readDurableState(), null))
 
   check('write then read roundtrips', () => {
@@ -81,10 +82,7 @@ try {
     writeFileSync(join(home, 'theme-picker-state.json'), JSON.stringify({ version: 1, selection: 'someone-elses/theme' }), 'utf8')
     strictEqual(host.readDurableState(), null)
   })
-} finally {
-  process.env.DSH_HOME = previousHome
-  rmSync(home, { recursive: true, force: true })
-}
+})
 
 // --- boot style -------------------------------------------------------------
 
@@ -98,5 +96,3 @@ check('a boot payload yields a scoped style with only hex + scheme values', () =
   const css = host.bootStyleFor({ version: 1, selection: 'theme-picker/dracula', boot: { background: '#20212b', colorScheme: 'dark' } })
   ok(typeof css === 'string' && css.includes('color-scheme:dark') && css.includes('background-color:#20212b'), `unexpected css: ${css}`)
 })
-
-console.log(`state: ${passed}/${passed} checks passed`)

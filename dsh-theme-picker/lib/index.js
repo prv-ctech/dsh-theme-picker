@@ -126,12 +126,12 @@ function readBody(req) {
   })
 }
 
-/** Cordis entry: register the route and the boot injection, release both on teardown. */
+/** Cordis entry: register the route; the boot-injection listener is fiber-owned
+ * (cordis removes it when the fiber unloads). */
 export function apply(ctx) {
   const webServer = ctx.get('webServer')
   if (webServer === undefined) return
-  const disposers = [
-    webServer.register({
+  ctx.effect(() => webServer.register({
       kind: 'exact',
       path: STATE_PATH,
       handler: async (req, res) => {
@@ -155,14 +155,9 @@ export function apply(ctx) {
         }
         json(res, 405, { ok: false, error: 'method not allowed' })
       },
-    }),
-  ]
-  const offInject = ctx.on('webserver/index-inject', (table) => {
+    }), 'dsh-theme-picker: host route')
+  ctx.on('webserver/index-inject', (table) => {
     const css = bootStyleFor(readDurableState())
     if (css !== undefined) table.push({ kind: 'style', text: css })
   })
-  if (typeof offInject === 'function') disposers.push(offInject)
-  ctx.effect(() => () => {
-    for (const dispose of disposers) dispose()
-  }, 'dsh-theme-picker: host route + boot injection')
 }

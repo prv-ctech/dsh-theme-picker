@@ -3,9 +3,10 @@
  *
  * The client bundle is one self-contained file (the module loader runs it as a
  * single factory), so the reference tables live inline. This script reads the
- * researched tables in `docs/research/`, keeps every token the installed build
- * actually declares (a token this build no longer knows is dead weight), and
- * rewrites the block between the generated-tables markers.
+ * researched tables in `.superpowers/research/` (untracked local research; see
+ * the README credits for the upstream sources), keeps every token the
+ * installed build actually declares (a token this build no longer knows is
+ * dead weight), and rewrites the block between the generated-tables markers.
  *
  *   node scripts/build-tables.mjs           # rewrite
  *   node scripts/build-tables.mjs --check   # fail when stale, write nothing
@@ -16,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { liveTokens } from './live-tokens.mjs'
 
 const CLIENT = fileURLToPath(new URL('../dsh-theme-picker/lib/client.js', import.meta.url))
-const RESEARCH = fileURLToPath(new URL('../docs/research/', import.meta.url))
+const RESEARCH = fileURLToPath(new URL('../.superpowers/research/', import.meta.url))
 
 /** Catalog order: Dracula, then the Catppuccin flavors light → dark. */
 export const KEYS = [
@@ -53,9 +54,10 @@ export function renderBlock(tables) {
   const lines = [
     BEGIN,
     '\t\t/**',
-    '\t\t * Reference theme tokens (docs/research/*.json, MIT), filtered to the token',
-    '\t\t * names the installed build declares. The base-palette tokens these tables',
-    '\t\t * miss are filled from each palette at load time.',
+    '\t\t * Reference theme tokens (MIT-licensed Dracula and Catppuccin mappings;',
+    '\t\t * see the README credits), filtered to the token names the installed',
+    '\t\t * build declares. The base-palette tokens these tables miss are filled',
+    '\t\t * from each palette at load time.',
     '\t\t */',
     '\t\tconst TABLES = {',
   ]

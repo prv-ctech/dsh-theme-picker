@@ -21,9 +21,10 @@ window.__ModuleLoader__.load({
 
 		// #region generated tables — node scripts/build-tables.mjs
 		/**
-		 * Reference theme tokens (docs/research/*.json, MIT), filtered to the token
-		 * names the installed build declares. The base-palette tokens these tables
-		 * miss are filled from each palette at load time.
+		 * Reference theme tokens (MIT-licensed Dracula and Catppuccin mappings;
+		 * see the README credits), filtered to the token names the installed
+		 * build declares. The base-palette tokens these tables miss are filled
+		 * from each palette at load time.
 		 */
 		const TABLES = {
 			"dracula": {
@@ -1052,7 +1053,10 @@ window.__ModuleLoader__.load({
 
 		function writeLocal(state) {
 			try {
-				if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+				// The instant layer needs the selection only — boot rides the host
+				// file (readState discards it anyway).
+				if (typeof localStorage !== 'undefined')
+					localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, selection: state.selection }));
 			} catch {
 				/* private mode or quota: the state file remains authoritative */
 			}
@@ -1233,7 +1237,7 @@ window.__ModuleLoader__.load({
 				sync();
 				return { pick: select };
 			};
-			ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register({
+			ctx.slots.inject('settings.section', () => ctx.slots.register({
 				name: 'settings.section',
 				id: 'theme-picker',
 				order: 5,
@@ -1241,7 +1245,7 @@ window.__ModuleLoader__.load({
 				locale: NS,
 				store,
 				inject: injected,
-			}, ThemePickerSection)), 'theme-picker: settings section');
+			}, ThemePickerSection));
 
 			// Restore: the instant layer first, then the file (its absence, or a
 			// selection of a theme that failed to register, means Default).

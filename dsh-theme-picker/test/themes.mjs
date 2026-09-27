@@ -13,9 +13,10 @@
  */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { test as check } from 'node:test'
 
-import { KEYS, referenceTables } from '../../scripts/build-tables.mjs'
-import { baseTokens, liveTokens } from '../../scripts/live-tokens.mjs'
+import { KEYS, referenceTables, renderBlock, withTables } from '../../scripts/build-tables.mjs'
+import { baseTokens } from '../../scripts/live-tokens.mjs'
 
 const BUNDLE = new URL('../lib/client.js', import.meta.url)
 
@@ -51,11 +52,6 @@ const storeStub = {
       },
     }
   },
-}
-
-const checks = []
-function check(name, fn) {
-  checks.push([name, fn])
 }
 
 /* ------------------------------- bundle load ------------------------------- */
@@ -95,9 +91,7 @@ function fakeCtx({ preference = 'system' } = {}) {
   const state = { preference, scheme: preference === 'light' ? 'light' : 'dark', revision: 0 }
   const themes = new Map()
   const registrations = []
-  const effects = []
   const ctx = {
-    effects,
     registrations,
     listeners: events,
     logger: { warn: (message) => ctx.warnings.push(message) },
@@ -138,19 +132,14 @@ function fakeCtx({ preference = 'system' } = {}) {
       bind: () => (key) => `t:${key}`,
     },
     slots: {
-      inject: (name, factory) => {
-        const dispose = factory()
-        effects.push(() => dispose?.())
-        return dispose
-      },
+      inject: (name, factory) => factory(),
       register: (options) => {
         registrations.push(options)
         return () => {}
       },
     },
     effect: (fn) => {
-      const dispose = fn()
-      effects.push(() => dispose?.())
+      fn()
     },
     on: (event, listener) => {
       const list = events.get(event) ?? []
@@ -174,7 +163,6 @@ function withBrowser({ storage = {}, fetchImpl } = {}) {
     clearTimeout: globalThis.clearTimeout,
   }
   const timers = []
-  const cancelled = new Set()
   globalThis.localStorage = {
     getItem: (key) => (key in storage ? storage[key] : null),
     setItem: (key, value) => {
@@ -194,12 +182,11 @@ function withBrowser({ storage = {}, fetchImpl } = {}) {
     timers.push({ fn, ms })
     return timers.length
   }
-  globalThis.clearTimeout = (handle) => cancelled.add(handle)
+  globalThis.clearTimeout = () => {}
   return {
     requests,
     timers,
     storage,
-    cancelled,
     restore() {
       globalThis.localStorage = previous.localStorage
       globalThis.fetch = previous.fetch
@@ -214,23 +201,20 @@ function withBrowser({ storage = {}, fetchImpl } = {}) {
 check('generated tables are fresh and cover the live surface', async () => {
   const { bundle } = await loadBundle()
   const expected = referenceTables()
-  const live = new Set(liveTokens())
   const base = baseTokens()
+  // The exact comparison `build-tables.mjs --check` makes: the whole generated
+  // block against a fresh render — names, schemes, and the token set the
+  // installed build declares, all at once (missing markers make withTables throw).
+  const source = readFileSync(BUNDLE, 'utf8')
+  assert.equal(withTables(source, renderBlock(expected)), source, 'generated tables drifted — run scripts/build-tables.mjs')
   assert.deepEqual(bundle.SKINS.map((skin) => skin.id), KEYS.map((key) => `theme-picker/${key}`))
   assert.equal(new Set(bundle.SKINS.map((skin) => skin.id)).size, KEYS.length, 'ids must be unique')
   for (const [index, key] of KEYS.entries()) {
     const skin = bundle.SKINS[index]
-    const table = expected[key]
-    assert.equal(skin.name, table.name)
     assert.ok(['light', 'dark'].includes(skin.colorScheme), `${key}: colorScheme`)
-    const embedded = Object.fromEntries(
-      Object.entries(skin.tokens).filter(([name]) => name in table.tokens),
-    )
-    assert.deepEqual(embedded, table.tokens, `${key}: embedded table drifted — run scripts/build-tables.mjs`)
-    for (const name of Object.keys(skin.tokens)) {
-      assert.ok(live.has(name), `${key}: ${name} is not a token of the installed build`)
-      assert.equal(typeof skin.tokens[name], 'string')
-      assert.ok(skin.tokens[name].length > 0, `${key}: ${name} is empty`)
+    for (const [name, value] of Object.entries(skin.tokens)) {
+      assert.equal(typeof value, 'string', `${key}: ${name}`)
+      assert.ok(value.length > 0, `${key}: ${name} is empty`)
     }
     for (const name of base) assert.ok(name in skin.tokens, `${key}: base token ${name} missing`)
     assert.match(skin.background, /^#[0-9a-fA-F]{3,8}$/, `${key}: boot background must be a hex color`)
@@ -279,19 +263,21 @@ check('selection applies, persists to both layers, and Default restores', async 
     assert.equal(instance.getSnapshot().selection, 'theme-picker/dracula')
     assert.equal(instance.getSnapshot().scheme, 'dark')
     const stored = JSON.parse(storage['dsh-theme-picker/selection'])
-    assert.deepEqual(stored, {
-      version: 1,
-      selection: 'theme-picker/dracula',
-      boot: { background: '#20212b', colorScheme: 'dark' },
-    })
-    // The debounced durable write carries the same payload to the host route.
+    // The instant layer carries the selection only; boot rides the host file.
+    assert.deepEqual(stored, { version: 1, selection: 'theme-picker/dracula' })
+    // The debounced durable write adds the boot payload for the host's
+    // pre-plugin paint.
     const put = browser.timers.find((timer) => timer.ms === 300)
     assert.ok(put !== undefined, 'a debounced PUT is scheduled')
     put.fn()
     await Promise.resolve()
     const request = browser.requests.find((entry) => entry.init?.method === 'PUT')
     assert.equal(request.url, '/theme-picker/state')
-    assert.deepEqual(JSON.parse(request.init.body), stored)
+    assert.deepEqual(JSON.parse(request.init.body), {
+      version: 1,
+      selection: 'theme-picker/dracula',
+      boot: { background: '#20212b', colorScheme: 'dark' },
+    })
 
     face.pick('default')
     assert.equal(ctx.theme.getTheme().preference, 'system')
@@ -392,27 +378,3 @@ check('a selection of an unregistered theme stays Default', async () => {
     browser.restore()
   }
 })
-
-check('the bundle source keeps its markers and the host half still parses', async () => {
-  const source = readFileSync(BUNDLE, 'utf8')
-  assert.ok(source.includes('// #region generated tables'), 'generated-tables markers present')
-  assert.ok(source.includes('// #endregion generated tables'))
-  // The host half is a separate Node module with its own suite (test/state.mjs).
-  assert.ok(readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8').includes('export function apply'))
-})
-
-/* ---------------------------------- run ----------------------------------- */
-
-let failed = 0
-for (const [name, fn] of checks) {
-  try {
-    await fn()
-    console.log(`ok   ${name}`)
-  } catch (error) {
-    failed += 1
-    console.error(`FAIL ${name}`)
-    console.error(error)
-  }
-}
-console.log(`${checks.length - failed}/${checks.length} checks passed`)
-if (failed > 0) process.exitCode = 1
