@@ -1,0 +1,34 @@
+#!/bin/sh
+# The same two checks CI runs, before the commit becomes public instead of after.
+#
+# Whole-repo rather than staged-files-only on purpose: both commands finish in
+# under a second here, and a staged-only formatter has to re-stage its own
+# output, which gets it wrong under `git commit -p`.
+#
+# One-time enable per clone (core.hooksPath is local config, not cloned):
+#
+#   git config core.hooksPath .githooks
+#
+# Bypass with `git commit --no-verify`; CI still runs these on the pushed commit.
+
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "pre-commit: pnpm not on PATH — install it, or commit with --no-verify" >&2
+  exit 1
+fi
+
+# A clean clone has no devDependencies, so `pnpm fmt:check` would fail with a
+# bare "oxfmt: command not found". Say what to do instead.
+if [ ! -x node_modules/.bin/oxfmt ]; then
+  echo "pre-commit: dev tooling missing — run 'pnpm install' first (or commit with --no-verify)" >&2
+  exit 1
+fi
+
+pnpm fmt:check || {
+  echo "pre-commit: formatting is off — run 'pnpm fmt'" >&2
+  exit 1
+}
+
+pnpm lint || {
+  echo "pre-commit: lint failed — run 'pnpm lint:fix'" >&2
+  exit 1
+}

@@ -42,6 +42,20 @@ dsh plugin --profile web remove dsh-theme-picker
 Restart `dsh web`. Everything goes back to the default theme — the plugin
 leaves nothing painted behind.
 
+## Development
+
+```sh
+pnpm install
+git config core.hooksPath .githooks   # once per clone: turns on the pre-commit hook
+```
+
+The hook runs `pnpm fmt:check` and `pnpm lint` before every commit — the same
+checks CI runs, so what passes locally passes there. `pnpm test` runs both suites;
+`pnpm fmt` and `pnpm lint:fix` fix whatever it complains about.
+
+`lib/client.js` is generated from `research/` by `scripts/build-tables.mjs`, and
+both its `--check` mode and the test suite fail if it drifts. Don't hand-edit it.
+
 ## Credits
 
 Dracula colors adapted from
