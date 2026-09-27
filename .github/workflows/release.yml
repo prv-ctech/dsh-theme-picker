@@ -1,5 +1,12 @@
-# Tag releases: push a version tag (v0.1.0, v0.1.1, …) to publish that exact
+# Tag releases: push a version tag (v0.1.0, v0.1.2, …) to publish that exact
 # release. Only version tags are published — no rolling tag is created.
+#
+# Every guard runs before the pack step, so a tag that disagrees with the
+# manifest fails the run instead of publishing a release whose name and version
+# contradict each other. The release notes are this version's CHANGELOG.md
+# section — the same text a reader finds in the repo — not generated notes built
+# from raw commit subjects. `node test/state.mjs` needs no dependencies, so it
+# runs here without an install.
 name: Release
 on:
   push:
@@ -10,12 +17,36 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - name: The tag must match the manifest version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          manifest="$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")"
+          if [ "$version" != "$manifest" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $manifest"
+            exit 1
+          fi
+          echo "tag $GITHUB_REF_NAME matches package.json $manifest"
+      - name: The install shape and release hygiene must hold
+        run: node test/state.mjs
+      - name: Lift this version's changelog entry into the release body
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v heading="## [$version]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && (/^## \[/ || /^\[[^]]+\]: /) { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no entry for $version — add one in the commit you tag"
+            exit 1
+          fi
+          cat release-notes.md
       - name: Pack the plugin
         run: git archive --format=tar.gz -o "dsh-theme-picker-${GITHUB_REF_NAME}.tgz" HEAD
       - name: Publish the version release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
           files: dsh-theme-picker-${{ github.ref_name }}.tgz
-          generate_release_notes: true
+          body_path: release-notes.md

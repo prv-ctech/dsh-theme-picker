@@ -29,3 +29,6 @@ jobs:
       - run: pnpm test
         env:
           DSH_INSTALL: ${{ github.workspace }}/node_modules
+      # High and critical only: a moderate transitive advisory with no released
+      # fix should not block unrelated work, but a high one should.
+      - run: pnpm audit --audit-level high

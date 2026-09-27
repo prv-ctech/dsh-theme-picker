@@ -59,6 +59,18 @@ check('the README pins the manifest version and the workflow moves no extra tags
   ok(!/gh release|git tag -f/.test(workflow), 'the workflow must not create, move, or delete extra tags')
 })
 
+// A version bump and its changelog entry belong in the same commit. At tag time
+// release.yml lifts this section into the release body and fails when it is
+// missing, so asserting it here moves that failure to the push that caused it
+// rather than to the tag, where the fix is a rewrite of a published release.
+
+check('the manifest version has a changelog entry', () => {
+  const version = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8')).version
+  const changelog = readFileSync(join(PACKAGE_ROOT, 'CHANGELOG.md'), 'utf8')
+  ok(changelog.includes('\n## [Unreleased]'), 'CHANGELOG.md needs an [Unreleased] section')
+  ok(changelog.includes(`\n## [${version}]`), `CHANGELOG.md needs a section for ${version}`)
+})
+
 // --- validateBody: the /theme-picker/state PUT trust boundary -------------
 
 check('accepts a full selection + boot payload', () => {
