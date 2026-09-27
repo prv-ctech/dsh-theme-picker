@@ -3,3 +3,6 @@
 # honours export-ignore; a git checkout does not).
 .github/ export-ignore
 scripts/ export-ignore
+.oxlintrc.json export-ignore
+.oxfmtrc.json export-ignore
+pnpm-lock.yaml export-ignore

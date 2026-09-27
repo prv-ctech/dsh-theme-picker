@@ -41,7 +41,7 @@ check(
     ok(manifest.dsh?.bundle?.patch, 'dsh.bundle.patch is what makes it a profile layer')
     ok(existsSync(join(PACKAGE_ROOT, manifest.main)), `main entry ${manifest.main} exists`)
     ok(existsSync(join(PACKAGE_ROOT, manifest.dsh.bundle.patch)), 'bundle patch exists')
-  },
+  }
 )
 
 // --- release hygiene: version tags only -----------------------------------
@@ -51,7 +51,9 @@ check(
 
 check('the README pins the manifest version and the workflow moves no extra tags', () => {
   const version = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8')).version
-  const pinned = [...readFileSync(join(PACKAGE_ROOT, 'README.md'), 'utf8').matchAll(/#(v\d+\.\d+\.\d+|latest)\b/g)].map((m) => m[1])
+  const pinned = [...readFileSync(join(PACKAGE_ROOT, 'README.md'), 'utf8').matchAll(/#(v\d+\.\d+\.\d+|latest)\b/g)].map(
+    (m) => m[1]
+  )
   deepStrictEqual(pinned, [`v${version}`], 'the README must pin exactly the manifest version, and never a moving tag')
   const workflow = readFileSync(join(PACKAGE_ROOT, '.github/workflows/release.yml'), 'utf8')
   ok(!/gh release|git tag -f/.test(workflow), 'the workflow must not create, move, or delete extra tags')
@@ -61,8 +63,12 @@ check('the README pins the manifest version and the workflow moves no extra tags
 
 check('accepts a full selection + boot payload', () => {
   deepStrictEqual(
-    host.validateBody({ version: 1, selection: 'theme-picker/dracula', boot: { background: '#282a36', colorScheme: 'dark' } }),
-    { version: 1, selection: 'theme-picker/dracula', boot: { background: '#282a36', colorScheme: 'dark' } },
+    host.validateBody({
+      version: 1,
+      selection: 'theme-picker/dracula',
+      boot: { background: '#282a36', colorScheme: 'dark' }
+    }),
+    { version: 1, selection: 'theme-picker/dracula', boot: { background: '#282a36', colorScheme: 'dark' } }
   )
 })
 
@@ -75,21 +81,33 @@ check('accepts an omitted selection as null', () => {
 })
 
 check('drops an optional boot when absent', () => {
-  deepStrictEqual(host.validateBody({ version: 1, selection: 'theme-picker/catppuccin-mocha' }), { version: 1, selection: 'theme-picker/catppuccin-mocha' })
+  deepStrictEqual(host.validateBody({ version: 1, selection: 'theme-picker/catppuccin-mocha' }), {
+    version: 1,
+    selection: 'theme-picker/catppuccin-mocha'
+  })
 })
 
 for (const [name, value] of [
   ['rejects a wrong version', { version: 2, selection: null }],
   ['rejects a non-string selection', { version: 1, selection: 42 }],
-  ['rejects another plugin\'s theme id', { version: 1, selection: 'catppuccin-mocha' }],
+  ["rejects another plugin's theme id", { version: 1, selection: 'catppuccin-mocha' }],
   ['rejects a bare id without the plugin prefix', { version: 1, selection: 'dracula' }],
   ['rejects an over-long id', { version: 1, selection: `theme-picker/${'a'.repeat(80)}` }],
   ['rejects an id with invalid characters', { version: 1, selection: 'theme-picker/foo bar' }],
   ['rejects a non-object body', 'nope'],
   ['rejects an array body', [1]],
-  ['rejects a non-hex boot background', { version: 1, selection: 'theme-picker/dracula', boot: { background: 'url(evil)', colorScheme: 'dark' } }],
-  ['rejects a named-color boot background', { version: 1, selection: 'theme-picker/dracula', boot: { background: 'red', colorScheme: 'dark' } }],
-  ['rejects an invalid boot colorScheme', { version: 1, selection: 'theme-picker/dracula', boot: { background: '#282a36', colorScheme: 'blue' } }],
+  [
+    'rejects a non-hex boot background',
+    { version: 1, selection: 'theme-picker/dracula', boot: { background: 'url(evil)', colorScheme: 'dark' } }
+  ],
+  [
+    'rejects a named-color boot background',
+    { version: 1, selection: 'theme-picker/dracula', boot: { background: 'red', colorScheme: 'dark' } }
+  ],
+  [
+    'rejects an invalid boot colorScheme',
+    { version: 1, selection: 'theme-picker/dracula', boot: { background: '#282a36', colorScheme: 'blue' } }
+  ]
 ]) {
   check(name, () => strictEqual(host.validateBody(value), null))
 }
@@ -114,8 +132,16 @@ describe('durable state file', () => {
   check('missing state reads as null', () => strictEqual(host.readDurableState(), null))
 
   check('write then read roundtrips', () => {
-    host.writeDurableState({ version: 1, selection: 'theme-picker/catppuccin-latte', boot: { background: '#eff1f5', colorScheme: 'light' } })
-    deepStrictEqual(host.readDurableState(), { version: 1, selection: 'theme-picker/catppuccin-latte', boot: { background: '#eff1f5', colorScheme: 'light' } })
+    host.writeDurableState({
+      version: 1,
+      selection: 'theme-picker/catppuccin-latte',
+      boot: { background: '#eff1f5', colorScheme: 'light' }
+    })
+    deepStrictEqual(host.readDurableState(), {
+      version: 1,
+      selection: 'theme-picker/catppuccin-latte',
+      boot: { background: '#eff1f5', colorScheme: 'light' }
+    })
   })
 
   check('corrupt state reads as null', () => {
@@ -124,7 +150,11 @@ describe('durable state file', () => {
   })
 
   check('state that fails validation reads as null', () => {
-    writeFileSync(join(home, 'theme-picker-state.json'), JSON.stringify({ version: 1, selection: 'someone-elses/theme' }), 'utf8')
+    writeFileSync(
+      join(home, 'theme-picker-state.json'),
+      JSON.stringify({ version: 1, selection: 'someone-elses/theme' }),
+      'utf8'
+    )
     strictEqual(host.readDurableState(), null)
   })
 })
@@ -138,6 +168,13 @@ check('no state or no boot yields no boot style', () => {
 })
 
 check('a boot payload yields a scoped style with only hex + scheme values', () => {
-  const css = host.bootStyleFor({ version: 1, selection: 'theme-picker/dracula', boot: { background: '#20212b', colorScheme: 'dark' } })
-  ok(typeof css === 'string' && css.includes('color-scheme:dark') && css.includes('background-color:#20212b'), `unexpected css: ${css}`)
+  const css = host.bootStyleFor({
+    version: 1,
+    selection: 'theme-picker/dracula',
+    boot: { background: '#20212b', colorScheme: 'dark' }
+  })
+  ok(
+    typeof css === 'string' && css.includes('color-scheme:dark') && css.includes('background-color:#20212b'),
+    `unexpected css: ${css}`
+  )
 })

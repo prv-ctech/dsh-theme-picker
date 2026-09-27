@@ -20,13 +20,7 @@ const CLIENT = fileURLToPath(new URL('../lib/client.js', import.meta.url))
 const RESEARCH = fileURLToPath(new URL('../.superpowers/research/', import.meta.url))
 
 /** Catalog order: Dracula, then the Catppuccin flavors light → dark. */
-export const KEYS = [
-  'dracula',
-  'catppuccin-latte',
-  'catppuccin-frappe',
-  'catppuccin-macchiato',
-  'catppuccin-mocha',
-]
+export const KEYS = ['dracula', 'catppuccin-latte', 'catppuccin-frappe', 'catppuccin-macchiato', 'catppuccin-mocha']
 
 const BEGIN = '\t\t// #region generated tables — node scripts/build-tables.mjs'
 const END = '\t\t// #endregion generated tables'
@@ -41,7 +35,7 @@ export function referenceTables() {
   for (const key of KEYS) {
     const source = JSON.parse(readFileSync(`${RESEARCH}${key}.json`, 'utf8'))
     const tokens = {}
-    for (const name of Object.keys(source.tokens).sort()) {
+    for (const name of Object.keys(source.tokens).toSorted()) {
       if (live.has(name)) tokens[name] = source.tokens[name]
     }
     tables[key] = { name: source.name, colorScheme: source.colorScheme, tokens }
@@ -59,7 +53,7 @@ export function renderBlock(tables) {
     '\t\t * build declares. The base-palette tokens these tables miss are filled',
     '\t\t * from each palette at load time.',
     '\t\t */',
-    '\t\tconst TABLES = {',
+    '\t\tconst TABLES = {'
   ]
   for (const key of KEYS) {
     const { name, colorScheme, tokens } = tables[key]

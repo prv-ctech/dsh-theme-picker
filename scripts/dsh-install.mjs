@@ -8,8 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROOT =
-  process.env.DSH_INSTALL ?? '/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules'
+const ROOT = process.env.DSH_INSTALL ?? '/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules'
 
 /**
  * Directory of one installed `@deepseek-ai/*` package.

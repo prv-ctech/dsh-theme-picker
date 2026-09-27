@@ -1,0 +1,31 @@
+# Static checks and both test suites on every push to main and every pull request.
+#
+# `DSH_INSTALL` points the token fixtures at the pinned
+# `@deepseek-ai/dsh-client-ui-theme` devDependency — the same 0.1.7-rc.2 build the
+# committed tables were generated from — so the client-half suite runs on a bare
+# runner. Locally the tests read the installed Harness instead.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.6.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fmt:check
+      - run: pnpm lint
+      - run: pnpm test
+        env:
+          DSH_INSTALL: ${{ github.workspace }}/node_modules

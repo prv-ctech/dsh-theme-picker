@@ -40,12 +40,12 @@ function namesOf(css) {
 export function liveTokens() {
   const names = new Set()
   for (const [, css] of cssBlobs()) for (const name of namesOf(css)) names.add(name)
-  return [...names].sort()
+  return [...names].toSorted()
 }
 
 /** Token names of the base palette — the set a theme should cover. */
 export function baseTokens() {
   const blob = cssBlobs().find(([name]) => name === 'design_platform_css_default')
   if (blob === undefined) throw new Error('base palette stylesheet not found')
-  return [...new Set(namesOf(blob[1]))].sort()
+  return [...new Set(namesOf(blob[1]))].toSorted()
 }

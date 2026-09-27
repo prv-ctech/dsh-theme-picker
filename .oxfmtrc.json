@@ -1,0 +1,15 @@
+{
+  // Style is matched to the code as written, chosen by measuring the reformat
+  // rather than by taste: at 80 columns 695 lines change, at 100 it is 324, at
+  // 120 it is 202. Single quotes and no semicolons are what this repo already
+  // uses, so matching them keeps the one-time diff small.
+  "printWidth": 120,
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "none",
+  // Generated: the token tables are byte-compared by scripts/build-tables.mjs
+  // `--check` and test/themes.mjs, so a formatter must not touch them. A
+  // `// oxfmt-ignore` comment does not cover that node (checked at three
+  // placements), which leaves the whole bundled file as the exception.
+  "ignorePatterns": ["lib/client.js"]
+}

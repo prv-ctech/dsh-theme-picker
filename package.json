@@ -12,6 +12,18 @@
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
+  "scripts": {
+    "lint": "oxlint --report-unused-disable-directives",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "test": "node test/state.mjs && node test/themes.mjs"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-client-ui-theme": "0.1.7-rc.2",
+    "oxfmt": "0.70.0",
+    "oxlint": "1.85.0"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"

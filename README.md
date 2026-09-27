@@ -8,14 +8,14 @@ web app — choose your colors once, and they stay.
 It adds a **Theme Picker** tab to Settings. Pick a theme and it applies right
 away; it is still your theme after a reload or a restart. Six choices:
 
-| Theme | Look |
-| --- | --- |
-| Default | the built-in look |
-| Dracula | dark |
-| Catppuccin Latte | light |
-| Catppuccin Frappé | soft dark |
-| Catppuccin Macchiato | dark |
-| Catppuccin Mocha | deep dark |
+| Theme                | Look              |
+| -------------------- | ----------------- |
+| Default              | the built-in look |
+| Dracula              | dark              |
+| Catppuccin Latte     | light             |
+| Catppuccin Frappé    | soft dark         |
+| Catppuccin Macchiato | dark              |
+| Catppuccin Mocha     | deep dark         |
 
 Works with **DSH 0.1.7-rc.2**, web profile.
 

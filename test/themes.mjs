@@ -34,6 +34,11 @@ const storeStub = {
         let snapshot = decl.init()
         const listeners = new Set()
         const actions = {}
+        // A fresh object identity per action is the real store's contract
+        // (subscribers compare snapshots). The spread runs per action call, not
+        // per loop iteration, so this is not an accumulator — oxlint reports the
+        // rule against the loop header.
+        // oxlint-disable-next-line oxc/no-accumulating-spread
         for (const key of Object.keys(decl.actions)) {
           actions[key] = (...params) => {
             snapshot = { ...snapshot }
@@ -47,11 +52,11 @@ const storeStub = {
           subscribe: (listener) => {
             listeners.add(listener)
             return () => listeners.delete(listener)
-          },
+          }
         }
-      },
+      }
     }
-  },
+  }
 }
 
 /* ------------------------------- bundle load ------------------------------- */
@@ -63,7 +68,7 @@ async function loadBundle() {
   const previous = globalThis.window
   globalThis.window = { __ModuleLoader__: { load: (registration) => registrations.push(registration) } }
   try {
-    await import(`${BUNDLE.href}?load=${loads += 1}`)
+    await import(`${BUNDLE.href}?load=${(loads += 1)}`)
   } finally {
     globalThis.window = previous
   }
@@ -71,7 +76,7 @@ async function loadBundle() {
   const [registration] = registrations
   assert.equal(registration.id, 'dsh-theme-picker', 'factory id must equal the package name')
   const react = {
-    createElement: (type, props, ...children) => ({ type, props: props ?? {}, children }),
+    createElement: (type, props, ...children) => ({ type, props: props ?? {}, children })
   }
   const required = []
   const bundle = registration.factory((specifier) => {
@@ -114,8 +119,18 @@ function fakeCtx({ preference = 'system' } = {}) {
       },
       getTheme() {
         const resolved = state.preference === 'system' ? state.scheme : state.preference
-        const active = themes.get(resolved) ?? { id: resolved, colorScheme: resolved === 'light' ? 'light' : 'dark', tokens: {} }
-        return { preference: state.preference, active, themes: [...themes.values()], revision: state.revision, fontSize: 14 }
+        const active = themes.get(resolved) ?? {
+          id: resolved,
+          colorScheme: resolved === 'light' ? 'light' : 'dark',
+          tokens: {}
+        }
+        return {
+          preference: state.preference,
+          active,
+          themes: [...themes.values()],
+          revision: state.revision,
+          fontSize: 14
+        }
       },
       /** Simulate the runtime's built-in preference adoption (a clobber). */
       adopt(id) {
@@ -125,18 +140,18 @@ function fakeCtx({ preference = 'system' } = {}) {
       },
       publish() {
         for (const listener of events.get('theme/change') ?? []) listener(ctx.theme.getTheme())
-      },
+      }
     },
     locale: {
       register: () => () => {},
-      bind: () => (key) => `t:${key}`,
+      bind: () => (key) => `t:${key}`
     },
     slots: {
       inject: (name, factory) => factory(),
       register: (options) => {
         registrations.push(options)
         return () => {}
-      },
+      }
     },
     effect: (fn) => {
       fn()
@@ -149,7 +164,7 @@ function fakeCtx({ preference = 'system' } = {}) {
         const at = list.indexOf(listener)
         if (at !== -1) list.splice(at, 1)
       }
-    },
+    }
   }
   return ctx
 }
@@ -160,7 +175,7 @@ function withBrowser({ storage = {}, fetchImpl } = {}) {
     localStorage: globalThis.localStorage,
     fetch: globalThis.fetch,
     setTimeout: globalThis.setTimeout,
-    clearTimeout: globalThis.clearTimeout,
+    clearTimeout: globalThis.clearTimeout
   }
   const timers = []
   globalThis.localStorage = {
@@ -170,7 +185,7 @@ function withBrowser({ storage = {}, fetchImpl } = {}) {
     },
     removeItem: (key) => {
       delete storage[key]
-    },
+    }
   }
   const requests = []
   globalThis.fetch = async (url, init) => {
@@ -192,7 +207,7 @@ function withBrowser({ storage = {}, fetchImpl } = {}) {
       globalThis.fetch = previous.fetch
       globalThis.setTimeout = previous.setTimeout
       globalThis.clearTimeout = previous.clearTimeout
-    },
+    }
   }
 }
 
@@ -206,8 +221,15 @@ check('generated tables are fresh and cover the live surface', async () => {
   // block against a fresh render — names, schemes, and the token set the
   // installed build declares, all at once (missing markers make withTables throw).
   const source = readFileSync(BUNDLE, 'utf8')
-  assert.equal(withTables(source, renderBlock(expected)), source, 'generated tables drifted — run scripts/build-tables.mjs')
-  assert.deepEqual(bundle.SKINS.map((skin) => skin.id), KEYS.map((key) => `theme-picker/${key}`))
+  assert.equal(
+    withTables(source, renderBlock(expected)),
+    source,
+    'generated tables drifted — run scripts/build-tables.mjs'
+  )
+  assert.deepEqual(
+    bundle.SKINS.map((skin) => skin.id),
+    KEYS.map((key) => `theme-picker/${key}`)
+  )
   assert.equal(new Set(bundle.SKINS.map((skin) => skin.id)).size, KEYS.length, 'ids must be unique')
   for (const [index, key] of KEYS.entries()) {
     const skin = bundle.SKINS[index]
@@ -276,7 +298,7 @@ check('selection applies, persists to both layers, and Default restores', async 
     assert.deepEqual(JSON.parse(request.init.body), {
       version: 1,
       selection: 'theme-picker/dracula',
-      boot: { background: '#20212b', colorScheme: 'dark' },
+      boot: { background: '#20212b', colorScheme: 'dark' }
     })
 
     face.pick('default')
@@ -340,7 +362,9 @@ check('another plugin taking the preference drops our selection', async () => {
 
 check('a stored selection is restored from localStorage, and from the file when absent', async () => {
   const { bundle } = await loadBundle()
-  const storage = { 'dsh-theme-picker/selection': JSON.stringify({ version: 1, selection: 'theme-picker/catppuccin-frappe' }) }
+  const storage = {
+    'dsh-theme-picker/selection': JSON.stringify({ version: 1, selection: 'theme-picker/catppuccin-frappe' })
+  }
   const browser = withBrowser({ storage })
   const ctx = fakeCtx()
   try {
@@ -351,7 +375,10 @@ check('a stored selection is restored from localStorage, and from the file when 
   }
 
   const empty = {}
-  const second = withBrowser({ storage: empty, fetchImpl: async () => ({ version: 1, selection: 'theme-picker/catppuccin-macchiato' }) })
+  const second = withBrowser({
+    storage: empty,
+    fetchImpl: async () => ({ version: 1, selection: 'theme-picker/catppuccin-macchiato' })
+  })
   const fileCtx = fakeCtx()
   try {
     bundle.apply(fileCtx)
