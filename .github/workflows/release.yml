@@ -18,21 +18,18 @@ jobs:
       - name: Publish the version release
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name }}
           files: |
             dsh-theme-picker-${{ github.ref_name }}.tgz
             dsh-theme-picker.tgz
           generate_release_notes: true
-      - name: Move the rolling latest tag
+      - name: Move the rolling latest tag and release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest --yes --cleanup-tag || true
           git tag -f latest "$GITHUB_SHA"
           git push -f origin latest
-      - name: Publish the rolling latest release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag: latest
-          name: latest
-          body: 'Rolling release: the newest tagged version, currently ${{ github.ref_name }}. Install with: dsh plugin --profile web add github:${{ github.repository }}#latest — or download the archive below.'
-          files: dsh-theme-picker.tgz
+          gh release create latest --title latest \
+            --notes "Rolling release: the newest tagged version, currently ${GITHUB_REF_NAME}. Install with: dsh plugin --profile web add github:${GITHUB_REPOSITORY}#latest — or download the archive below." \
+            dsh-theme-picker.tgz
