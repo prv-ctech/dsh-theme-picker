@@ -8,12 +8,28 @@ only when the git tag, the manifest version and an entry here all agree —
 
 ## [Unreleased]
 
-Nothing consumer-visible yet. Repo-only work: oxlint and oxfmt gates with CI on
-every push to `main`, a `pnpm audit` gate, this changelog, and git hooks that run
-the whole gate (`fmt:check`, `lint`, `test`) and the Conventional Commits subject
-check before a commit becomes public. The client-half suite now also measures each
-skin's text against WCAG contrast floors, so a palette edit that makes a label
-unreadable fails the build instead of shipping.
+Nothing yet.
+
+## [0.1.3] - 2026-09-27
+
+### Changed
+
+- Nothing about the plugin changes. `lib/` differs from `0.1.2` only where the
+  formatter reflowed `lib/index.js`; the release exists so the pinned install tag
+  and the manifest version agree again.
+
+### Repository
+
+- CI on every push to `main` and every pull request: `fmt:check`, `lint`, both
+  test suites, and `pnpm audit`. The git hooks run the same gate, plus a
+  Conventional Commits subject check, before a commit becomes public.
+- The client-half suite measures every skin's text against WCAG contrast floors —
+  4.5:1 for body text, 3:1 for meta text — on each surface the plugin paints, so
+  a palette edit that makes a label unreadable fails the build instead of
+  shipping. The helper is pinned to WCAG's published reference ratios.
+- The researched palette tokens are committed under `research/`, so the suite
+  runs off this machine, and the release workflow lifts each version's changelog
+  section into its release notes.
 
 ## [0.1.2] - 2026-09-27
 
@@ -45,6 +61,7 @@ unreadable fails the build instead of shipping.
 - A head style injected before any script runs, so a reload paints the chosen
   background instead of flashing the default palette while the client loads.
 
-[Unreleased]: https://github.com/prv-ctech/dsh-theme-picker/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/prv-ctech/dsh-theme-picker/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/prv-ctech/dsh-theme-picker/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/prv-ctech/dsh-theme-picker/compare/v0.1.0...v0.1.2
 [0.1.0]: https://github.com/prv-ctech/dsh-theme-picker/releases/tag/v0.1.0

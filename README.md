@@ -28,7 +28,7 @@ Install it from a terminal — either command below, same plugin:
 dsh plugin --profile web add github:prv-ctech/dsh-theme-picker
 
 # one exact release, pinned until you say otherwise
-dsh plugin --profile web add github:prv-ctech/dsh-theme-picker#v0.1.2
+dsh plugin --profile web add github:prv-ctech/dsh-theme-picker#v0.1.3
 ```
 
 Then restart `dsh web` and open **Settings → Theme Picker**.
