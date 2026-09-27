@@ -46,12 +46,19 @@ leaves nothing painted behind.
 
 ```sh
 pnpm install
-git config core.hooksPath .githooks   # once per clone: turns on the pre-commit hook
+git config core.hooksPath .githooks   # once per clone: turns on the hooks
 ```
 
-The hook runs `pnpm fmt:check` and `pnpm lint` before every commit — the same
-checks CI runs, so what passes locally passes there. `pnpm test` runs both suites;
-`pnpm fmt` and `pnpm lint:fix` fix whatever it complains about.
+The hooks run `pnpm fmt:check`, `pnpm lint` and `pnpm test` before every commit —
+the same gate CI runs, so what passes locally passes there. `pnpm fmt` and
+`pnpm lint:fix` fix whatever it complains about.
+
+The commit subject is checked too: `<type>(<scope>): <description>`, with a type
+from [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+(`feat`, `fix`, `docs`, `test`, `chore`, …). Merge, revert and autosquash
+subjects pass through exactly as git writes them; `--amend` is checked, a rebase
+replay is not. `git commit --no-verify` skips both hooks for one commit, and CI
+runs the gate on the push regardless.
 
 `lib/client.js` is generated from `research/` by `scripts/build-tables.mjs`, and
 both its `--check` mode and the test suite fail if it drifts. Don't hand-edit it.

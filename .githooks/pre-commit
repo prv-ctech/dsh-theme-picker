@@ -1,15 +1,15 @@
 #!/bin/sh
-# The same two checks CI runs, before the commit becomes public instead of after.
+# The same gate CI runs, before the commit becomes public instead of after.
 #
-# Whole-repo rather than staged-files-only on purpose: both commands finish in
-# under a second here, and a staged-only formatter has to re-stage its own
+# Whole-repo rather than staged-files-only on purpose: the three commands finish
+# in about a second here, and a staged-only formatter has to re-stage its own
 # output, which gets it wrong under `git commit -p`.
 #
 # One-time enable per clone (core.hooksPath is local config, not cloned):
 #
 #   git config core.hooksPath .githooks
 #
-# Bypass with `git commit --no-verify`; CI still runs these on the pushed commit.
+# Bypass with `git commit --no-verify`; CI still runs this on the pushed commit.
 
 if ! command -v pnpm >/dev/null 2>&1; then
   echo "pre-commit: pnpm not on PATH — install it, or commit with --no-verify" >&2
@@ -32,3 +32,11 @@ pnpm lint || {
   echo "pre-commit: lint failed — run 'pnpm lint:fix'" >&2
   exit 1
 }
+
+# The suite reports in TAP, which is pages of output on every commit; keep it for
+# the case that needs it, the failure.
+if ! report=$(pnpm test 2>&1); then
+  printf '%s\n' "$report" >&2
+  echo "pre-commit: tests failed — fix them, or commit with --no-verify" >&2
+  exit 1
+fi

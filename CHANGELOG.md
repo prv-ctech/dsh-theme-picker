@@ -9,8 +9,11 @@ only when the git tag, the manifest version and an entry here all agree —
 ## [Unreleased]
 
 Nothing consumer-visible yet. Repo-only work: oxlint and oxfmt gates with CI on
-every push to `main`, a committed pre-commit hook that runs them before a commit
-becomes public, a `pnpm audit` gate, and this changelog.
+every push to `main`, a `pnpm audit` gate, this changelog, and git hooks that run
+the whole gate (`fmt:check`, `lint`, `test`) and the Conventional Commits subject
+check before a commit becomes public. The client-half suite now also measures each
+skin's text against WCAG contrast floors, so a palette edit that makes a label
+unreadable fails the build instead of shipping.
 
 ## [0.1.2] - 2026-09-27
 
