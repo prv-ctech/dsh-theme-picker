@@ -245,6 +245,80 @@ check('generated tables are fresh and cover the live surface', async () => {
   }
 })
 
+/* ------------------------------ text contrast ----------------------------- */
+
+/**
+ * sRGB channels of a `#rgb`, `#rrggbb` or `#rrggbbaa` value. A skin token that
+ * is anything else is a bug in the tables, not a case to skip.
+ */
+function channels(value, where) {
+  if (!/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)) {
+    throw new Error(`${where}: ${value} is not a hex color`)
+  }
+  const digits = value.slice(1)
+  const full = digits.length <= 4 ? [...digits].map((digit) => digit.repeat(2)).join('') : digits
+  const [r, g, b, alpha = 'ff'] = full.match(/../g)
+  return { r: parseInt(r, 16), g: parseInt(g, 16), b: parseInt(b, 16), alpha: parseInt(alpha, 16) / 255 }
+}
+
+/** One sRGB channel, linearised for the WCAG 2 luminance formula. */
+function linear(channel) {
+  const value = channel / 255
+  return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+}
+
+/** WCAG 2 relative luminance of an sRGB color. */
+function luminance({ r, g, b }) {
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+}
+
+/** WCAG 2 contrast ratio of `foreground` painted over an opaque `background`. */
+function contrast(foreground, background, where) {
+  const fg = channels(foreground, where)
+  const bg = channels(background, where)
+  // A translucent foreground shows the background through it, so composite the
+  // two before measuring; the backgrounds themselves are opaque here.
+  const painted = {
+    r: fg.r * fg.alpha + bg.r * (1 - fg.alpha),
+    g: fg.g * fg.alpha + bg.g * (1 - fg.alpha),
+    b: fg.b * fg.alpha + bg.b * (1 - fg.alpha)
+  }
+  const [high, low] = [luminance(painted), luminance(bg)].toSorted((a, b) => b - a)
+  return (high + 0.05) / (low + 0.05)
+}
+
+const SURFACES = ['--dsw-alias-bg-base', '--dsw-alias-bg-layer-1', '--dsw-alias-bg-layer-2', '--dsw-alias-bg-layer-3']
+
+/** `[foreground, background, floor, what reads it]` — see the two blocks below. */
+const CONTRAST = [
+  // Painted by this plugin's own CSS, all of it at body size, so all of it AA.
+  ['--dsw-alias-label-primary', '--dsw-alias-bg-base', 4.5, 'the tab title'],
+  ['--dsw-alias-label-primary', '--dsw-alias-bg-layer-1', 4.5, 'the selected card name'],
+  ['--dsw-alias-label-primary', '--dsw-alias-bg-layer-2', 4.5, 'the card name'],
+  ['--dsw-alias-label-tertiary', '--dsw-alias-bg-base', 4.5, 'the tab hint'],
+  ['--dsw-alias-label-tertiary', '--dsw-alias-bg-layer-2', 4.5, 'the card scheme line, at 11px'],
+  // Restyled by a skin but painted by the harness. The body tier holds AA on
+  // every layer (measured minimum 4.68:1, Frappé on layer-3); the two dimmed
+  // tiers fall to WCAG's 3:1 floor (measured minimum 3.20:1 — Latte's secondary
+  // on layer-3, below AA, and that is the upstream Catppuccin value).
+  ...SURFACES.map((surface) => ['--dsw-alias-label-primary', surface, 4.5, 'body text']),
+  ...SURFACES.flatMap((surface) =>
+    ['--dsw-alias-label-secondary', '--dsw-alias-label-tertiary'].map((tier) => [tier, surface, 3, 'meta text'])
+  )
+]
+
+check('every skin keeps its text readable on every surface', async () => {
+  const { bundle } = await loadBundle()
+  for (const [index, key] of KEYS.entries()) {
+    const { tokens } = bundle.SKINS[index]
+    for (const [foreground, background, floor, what] of CONTRAST) {
+      const where = `${key}: ${what} (${foreground} on ${background})`
+      const ratio = contrast(tokens[foreground], tokens[background], where)
+      assert.ok(ratio >= floor, `${where} is ${ratio.toFixed(2)}:1, below the ${floor}:1 floor`)
+    }
+  }
+})
+
 check('apply registers the catalog and the settings tab', async () => {
   const { bundle, required } = await loadBundle()
   const browser = withBrowser()
