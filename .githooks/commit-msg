@@ -1,0 +1,17 @@
+#!/bin/sh
+# Conventional Commits subjects, checked on the message git is about to record.
+#
+# The rule lives in scripts/commit-msg.mjs so `pnpm test` covers exactly the code
+# this hook runs — a shell `case` would be a second copy nobody checks.
+#
+# Enabled per clone by `git config core.hooksPath .githooks` (see the README).
+# Bypass with `git commit --no-verify`; nothing checks subjects after the fact,
+# so a bypassed message stays as written.
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "commit-msg: node not on PATH — install Node, or commit with --no-verify" >&2
+  exit 1
+fi
+
+# $1 is the message file; git runs local hooks from the repo root.
+exec node scripts/commit-msg.mjs "$1"

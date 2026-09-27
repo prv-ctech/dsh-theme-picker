@@ -13,6 +13,7 @@ import { deepStrictEqual, ok, strictEqual } from 'node:assert'
 import { after, before, describe, test as check } from 'node:test'
 
 const host = await import('../lib/index.js')
+const { commitProblem } = await import('../scripts/commit-msg.mjs')
 
 // --- install shape: the package must be the repo root ---------------------
 // `dsh plugin add github:owner/repo` resolves the repository root, so a
@@ -69,6 +70,76 @@ check('the manifest version has a changelog entry', () => {
   const changelog = readFileSync(join(PACKAGE_ROOT, 'CHANGELOG.md'), 'utf8')
   ok(changelog.includes('\n## [Unreleased]'), 'CHANGELOG.md needs an [Unreleased] section')
   ok(changelog.includes(`\n## [${version}]`), `CHANGELOG.md needs a section for ${version}`)
+})
+
+// --- commit subjects: conventional prefixes --------------------------------
+// The log is read by humans, filtered by tooling, and mined when the changelog
+// is written, so a subject carries its type. The rule is a function rather than
+// a shell `case` so this suite checks the same code `.githooks/commit-msg` runs
+// on the message git is about to record.
+
+// Spelled out rather than read from the module: a loop over the production
+// list shrinks with it and cannot notice a type going missing.
+for (const type of ['build', 'chore', 'ci', 'docs', 'feat', 'fix', 'perf', 'refactor', 'revert', 'style', 'test']) {
+  check(`accepts a "${type}:" subject`, () => strictEqual(commitProblem(`${type}: do the thing`), null))
+}
+
+check('accepts a scope, a breaking marker, and both together', () => {
+  strictEqual(commitProblem('chore(hooks): run the tests before committing'), null)
+  strictEqual(commitProblem('feat!: drop the legacy token names'), null)
+  strictEqual(commitProblem('docs(readme)!: rewrite the install steps'), null)
+})
+
+check('accepts what git itself writes', () => {
+  strictEqual(commitProblem("Merge branch 'main' into hooks"), null)
+  strictEqual(commitProblem('Merge pull request #4 from prv-ctech/hooks'), null)
+  strictEqual(commitProblem('Revert "fix: keep the state file readable"'), null)
+  strictEqual(commitProblem('fixup! fix: keep the state file readable'), null)
+  strictEqual(commitProblem('squash! fix: keep the state file readable'), null)
+})
+
+check('reads the subject through the comments and diff git appends', () => {
+  // `git commit -v` leaves the message, the comment block and a scissors
+  // section in the same file; only the first line that is not a comment counts.
+  const message = [
+    'test: hold every skin to a contrast floor',
+    '',
+    '# Please enter the commit message for your changes.',
+    '#',
+    '# ------------------------ >8 ------------------------',
+    'diff --git a/test/themes.mjs b/test/themes.mjs',
+    '+fix: a diff line is not a subject'
+  ].join('\n')
+  strictEqual(commitProblem(message), null)
+  // Blank lines ahead of the subject are skipped, not treated as the subject.
+  strictEqual(commitProblem('\n\n   test: hold every skin to a contrast floor\n'), null)
+  // So is a comment block ahead of it, which `commit.template` and
+  // `--cleanup=verbatim` leave in place.
+  strictEqual(commitProblem('# a template line\n\nfix: the state file\n'), null)
+  ok(commitProblem('# a template line\nwip: more hooks\n') !== null, 'the template line was judged instead')
+  ok(commitProblem('\n\n# only comments\n') !== null, 'a message with no subject was accepted')
+})
+
+for (const [name, message] of [
+  ['a subject with no type', 'Added a contrast test'],
+  ['a capitalised type', 'Fix: stop the clobber'],
+  ['an unknown type', 'wip: more hooks'],
+  ['a missing colon', 'fix the state file'],
+  ['a missing space after the colon', 'fix:the state file'],
+  ['an empty description', 'fix: '],
+  ['a scope with a space in it', 'fix(two words): the state file'],
+  ['an empty message', '']
+]) {
+  check(`rejects ${name}`, () => {
+    const problem = commitProblem(message)
+    ok(problem !== null, `${JSON.stringify(message)} was accepted`)
+  })
+}
+
+check('the problem names the subject and the shape wanted', () => {
+  const problem = commitProblem('wip: more hooks')
+  ok(problem.includes('wip: more hooks'), problem)
+  ok(problem.includes('feat'), problem)
 })
 
 // --- validateBody: the /theme-picker/state PUT trust boundary -------------
