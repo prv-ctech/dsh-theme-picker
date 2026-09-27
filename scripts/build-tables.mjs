@@ -3,10 +3,10 @@
  *
  * The client bundle is one self-contained file (the module loader runs it as a
  * single factory), so the reference tables live inline. This script reads the
- * researched tables in `.superpowers/research/` (untracked local research; see
- * the README credits for the upstream sources), keeps every token the
- * installed build actually declares (a token this build no longer knows is
- * dead weight), and rewrites the block between the generated-tables markers.
+ * researched tables in `research/` (the upstream MIT notices sit beside them —
+ * see the README credits for the sources), keeps every token the installed
+ * build actually declares (a token this build no longer knows is dead weight),
+ * and rewrites the block between the generated-tables markers.
  *
  *   node scripts/build-tables.mjs           # rewrite
  *   node scripts/build-tables.mjs --check   # fail when stale, write nothing
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { liveTokens } from './live-tokens.mjs'
 
 const CLIENT = fileURLToPath(new URL('../lib/client.js', import.meta.url))
-const RESEARCH = fileURLToPath(new URL('../.superpowers/research/', import.meta.url))
+const RESEARCH = fileURLToPath(new URL('../research/', import.meta.url))
 
 /** Catalog order: Dracula, then the Catppuccin flavors light → dark. */
 export const KEYS = ['dracula', 'catppuccin-latte', 'catppuccin-frappe', 'catppuccin-macchiato', 'catppuccin-mocha']
