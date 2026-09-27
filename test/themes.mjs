@@ -307,6 +307,13 @@ const CONTRAST = [
   )
 ]
 
+check('the contrast helper agrees with the published reference values', () => {
+  // A wrong formula would still rank these skins plausibly, so pin it to two
+  // WCAG values: white on black is 21:1, and #777 on white is 4.48:1.
+  assert.equal(contrast('#000000', '#ffffff', 'reference').toFixed(2), '21.00')
+  assert.equal(contrast('#777777', '#ffffff', 'reference').toFixed(2), '4.48')
+})
+
 check('every skin keeps its text readable on every surface', async () => {
   const { bundle } = await loadBundle()
   for (const [index, key] of KEYS.entries()) {
